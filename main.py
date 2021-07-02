@@ -67,7 +67,7 @@ def run():
         if response == "INTERNET IS ALIVE":
             lock.acquire()
             last_update_time = time.time()
-            print("log: alive")
+            logging.info("alive received")
             lock.release()
 
 
