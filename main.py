@@ -16,7 +16,10 @@ def t_updater():
     while True:
         check_period = get_check_period()
         time.sleep(check_period)
-        if time.time() - last_update_time > 2 * sender_period:
+        lock.acquire()
+        lut = last_update_time
+        lock.release()
+        if time.time() - lut > 2 * sender_period:
             internet_status_dead()
         else:
             internet_status_alive()
