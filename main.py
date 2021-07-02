@@ -71,7 +71,7 @@ def run():
             lock.release()
 
 
-sender_period = 10
+sender_period = 60
 
 alive_check_period = sender_period / 2
 dead_check_period = sender_period / 4
