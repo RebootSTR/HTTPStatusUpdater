@@ -31,3 +31,10 @@ class HTTPServer:
         connection.close()
 
         return data.decode(encoding="utf-8")
+
+    def get_bytes(self):
+        connection, client_address = self.sock.accept()
+        data = connection.recv(64)
+        connection.close()
+
+        return data

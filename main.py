@@ -63,8 +63,8 @@ def run():
 
     server = HTTPServer()
     while True:
-        response = server.get()
-        if response == "INTERNET IS ALIVE":
+        response = server.get_bytes()
+        if response == b"INTERNET IS ALIVE":
             lock.acquire()
             last_update_time = time.time()
             logging.info("alive received")
