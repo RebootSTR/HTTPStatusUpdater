@@ -69,6 +69,8 @@ def run():
             last_update_time = time.time()
             logging.info("alive received")
             lock.release()
+        else:
+            logging.info(f"received unknown bytes: {response}")
 
 
 sender_period = 60
