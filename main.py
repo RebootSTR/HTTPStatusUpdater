@@ -56,6 +56,10 @@ def send_status(status: str):  # todo subscribing
     logging.info(r.json())
 
 
+def no_slash(bytes):
+    return str(bytes).replace("\\n", "\n").replace("\\r", "\r")[2:-1]
+
+
 def run():
     global last_update_time
     updater = Thread(target=t_updater, daemon=True)
@@ -63,14 +67,14 @@ def run():
 
     server = HTTPServer()
     while True:
-        response = server.get_bytes()
+        response, address = server.get_bytes()
         if response == b"INTERNET IS ALIVE":
             lock.acquire()
             last_update_time = time.time()
-            logging.info("alive received")
+            logging.info("alive received from " + str(address))
             lock.release()
         else:
-            logging.info(f"received unknown bytes: {response}")
+            logging.info(f"received unknown bytes from {address}\n{no_slash(response)}")
 
 
 sender_period = 60
