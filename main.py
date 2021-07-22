@@ -6,11 +6,11 @@ import properties
 from HTTPServer import HTTPServer
 from vk import VK
 
-
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s %(message)s',
-                    datefmt='%d/%m/%Y %H:%M:%S')
-
+file_log = logging.FileHandler("log.log")
+logging.basicConfig(format='%(asctime)s %(message)s',
+                    datefmt='%d/%m/%Y %H:%M:%S',
+                    level=logging.INFO)
+logging.getLogger("").addHandler(file_log)
 
 def t_updater():
     while True:
