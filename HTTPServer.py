@@ -33,14 +33,11 @@ class HTTPServer:
         return data.decode(encoding="utf-8"), client_address
 
     def get_bytes(self):
-        try:
-            connection, client_address = self.sock.accept()
+        connection, client_address = self.sock.accept()
+        d = connection.recv(64)
+        data = b""
+        while not d == b"":
+            data += d
             d = connection.recv(64)
-            data = b""
-            while not d == b"":
-                data += d
-                d = connection.recv(64)
-            connection.close()
-        except:
-            return
+        connection.close()
         return data, client_address

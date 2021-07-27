@@ -67,7 +67,11 @@ def run():
 
     server = HTTPServer()
     while True:
-        response, address = server.get_bytes()
+        try:
+            response, address = server.get_bytes()
+        except Exception as e:
+            logging.info(f"something wrong with connection: {e}")
+            continue
         if response == b"INTERNET IS ALIVE":
             lock.acquire()
             last_update_time = time.time()
