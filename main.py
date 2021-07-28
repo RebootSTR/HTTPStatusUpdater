@@ -12,17 +12,22 @@ logging.basicConfig(format='%(asctime)s %(message)s',
                     level=logging.INFO)
 logging.getLogger("").addHandler(file_log)
 
+
 def t_updater():
     while True:
-        check_period = get_check_period()
-        time.sleep(check_period)
-        lock.acquire()
-        lut = last_update_time
-        lock.release()
-        if time.time() - lut > 2 * sender_period:
-            internet_status_dead()
-        else:
-            internet_status_alive()
+        try:
+            check_period = get_check_period()
+            time.sleep(check_period)
+            lock.acquire()
+            lut = last_update_time
+            lock.release()
+            if time.time() - lut > 2 * sender_period:
+                internet_status_dead()
+            else:
+                internet_status_alive()
+        except Exception as e:
+            logging.info(e)
+            send_status("dead")
 
 
 def get_check_period() -> float:
