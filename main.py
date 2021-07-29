@@ -27,7 +27,7 @@ def t_updater():
                 internet_status_alive()
         except Exception as e:
             logging.info(e)
-            send_status("dead")
+            send_status("Поток умер изза эксепшена (см логи)")
 
 
 def get_check_period() -> float:
@@ -43,7 +43,10 @@ def internet_status_dead():
         return
 
     _is_internet_alive = False
-    send_status(STATUS_DEAD)
+    if updaterThread.is_alive():
+        send_status(STATUS_DEAD)
+    else:
+        send_status(STATUS_THREAD_DEAD)
 
 
 def internet_status_alive():
@@ -67,8 +70,7 @@ def no_slash(bytes):
 
 def run():
     global last_update_time
-    updater = Thread(target=t_updater, daemon=True)
-    updater.start()
+    updaterThread.start()
 
     server = HTTPServer()
     while True:
@@ -93,6 +95,7 @@ dead_check_period = sender_period / 4
 
 STATUS_ALIVE = "Интернет ожил во имя святого Лемжина"
 STATUS_DEAD = "Инет упал, опять.."
+STATUS_THREAD_DEAD = "Поток упал риальна кек"
 
 if __name__ == '__main__':
     token = properties.get("token")
@@ -101,4 +104,5 @@ if __name__ == '__main__':
     _is_internet_alive = True
     last_update_time = time.time()
     lock = Lock()
+    updaterThread = Thread(target=t_updater, daemon=True)
     run()
