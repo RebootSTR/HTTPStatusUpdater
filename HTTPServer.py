@@ -34,6 +34,8 @@ class HTTPServer:
 
     def get_bytes(self):
         connection, client_address = self.sock.accept()
+        connection: socket.socket
+        connection.settimeout(5)
         d = connection.recv(64)
         data = b""
         while not d == b"":

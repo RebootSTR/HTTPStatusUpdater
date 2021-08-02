@@ -43,10 +43,7 @@ def internet_status_dead():
         return
 
     _is_internet_alive = False
-    if updaterThread.is_alive():
-        send_status(STATUS_DEAD)
-    else:
-        send_status(STATUS_THREAD_DEAD)
+    send_status(STATUS_DEAD)
 
 
 def internet_status_alive():
@@ -95,7 +92,6 @@ dead_check_period = sender_period / 4
 
 STATUS_ALIVE = "Интернет ожил во имя святого Лемжина"
 STATUS_DEAD = "Инет упал, опять.."
-STATUS_THREAD_DEAD = "Поток упал риальна кек"
 
 if __name__ == '__main__':
     token = properties.get("token")
