@@ -58,7 +58,7 @@ def internet_status_alive(time_passed):
 
     _is_internet_alive = True
     status = STATUS_ALIVE.format(time_passed)
-    if time_passed < SILENT_TIME_MINUTES*60:
+    if time_passed > SILENT_TIME_MINUTES*60:
         send_status(status)
     else:
         send_silent_status(status)
