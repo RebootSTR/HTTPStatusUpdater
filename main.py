@@ -65,7 +65,7 @@ def internet_status_alive(time_passed):
 
 
 def send_status(status: str, silent=0):  # todo subscribing (upd 21.01.2022: no, thanks :) )
-    r = vk.rest.post("messages.send", user_id=user_id, message=status, random=True, silent=silent)
+    r = vk.rest.post("messages.send", v="5.173", user_id=user_id, message=status, random=True, silent=silent)
     logging.info(status)
     logging.info(r.json())
 
