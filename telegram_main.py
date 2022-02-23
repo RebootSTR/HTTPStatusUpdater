@@ -30,9 +30,6 @@ def run():
         dispatcher.add_handler(handler)
 
     updater.start_polling()
-    for id in subscribedUsers:
-        trySendMessage(chat_id=id,
-                       text="hui")
     updater.idle()
 
 
