@@ -47,9 +47,21 @@ class DataBase:
         cursor.close()
         return data
 
+    def get_all(self, table, column):
+        cursor = self.conn.cursor()
+        data = cursor.execute("SELECT {} FROM {}".format(column, table)).fetchall()
+        cursor.close()
+        return data
+
     def edit(self, table, column, value, search):
         cursor = self.conn.cursor()
         cursor.execute("update {} set {}=? where {}".format(table, column, search), [value])
+        cursor.close()
+        self.save()
+
+    def remove(self, table, column, search):
+        cursor = self.conn.cursor()
+        cursor.execute("delete from {} where {}=?".format(table, column), [search])
         cursor.close()
         self.save()
 
