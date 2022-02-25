@@ -2,7 +2,7 @@
 import logging
 import time
 
-from telegram import Update, KeyboardButton, ReplyKeyboardMarkup, Bot
+from telegram import Update, KeyboardButton, ReplyKeyboardMarkup, Bot, ReplyKeyboardRemove
 from telegram.error import Unauthorized
 from telegram.ext import Updater, CommandHandler, CallbackContext, Dispatcher, MessageHandler, Filters
 
@@ -23,6 +23,9 @@ def run():
 
     handlers = [
         CommandHandler("start", _start),
+        CommandHandler("debug", _debug, filters=ADMIN),
+
+
         MessageHandler(Filters.text, _text)
     ]
 
@@ -31,6 +34,10 @@ def run():
 
     updater.start_polling()
     updater.idle()
+
+
+def _debug(update: Update, context: CallbackContext):
+    onAliveReceived()
 
 
 def _start(update: Update, context: CallbackContext):
@@ -52,7 +59,8 @@ def _text(update: Update, context: CallbackContext):
         logging.info("subscribed to notify, userid: %d", update.effective_chat.id)
         TEXT = 'Вы получите уведомление о ближайшем получении "живого" сигнала ПгутиНета'
         context.bot.sendMessage(chat_id=update.effective_chat.id,
-                                text=TEXT)
+                                text=TEXT,
+                                reply_markup=EMPTY_KEYBOARD)
         notifyUsers.append(update.effective_chat.id)
     else:
         logging.info("unknown text, userid: %d", update.effective_chat.id)
@@ -65,7 +73,7 @@ def _text(update: Update, context: CallbackContext):
 
 def onAliveReceived():
     for user in notifyUsers:
-        logging.info("method: {}, userid: {}", "onAliveReceived", user)
+        logging.info("method: %s, userid: %d", "onAliveReceived", user)
         trySendMessage(chat_id=user,
                        text="Интернет жив",
                        reply_markup=NOTIFY_KEYBOARD)
@@ -125,7 +133,9 @@ NOTIFY = "Принудительное уведомлнеие"
 NOTIFY_KEYBOARD_BUTTONS = [
     [KeyboardButton(NOTIFY)]
 ]
-NOTIFY_KEYBOARD = ReplyKeyboardMarkup(NOTIFY_KEYBOARD_BUTTONS, one_time_keyboard=True, resize_keyboard=True)
+NOTIFY_KEYBOARD = ReplyKeyboardMarkup(NOTIFY_KEYBOARD_BUTTONS, resize_keyboard=True)
+EMPTY_KEYBOARD = ReplyKeyboardRemove()
+ADMIN = Filters.user(username="RebootSTR")
 bot: Bot
 
 if __name__ == '__main__':
