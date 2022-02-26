@@ -22,10 +22,12 @@ def run():
     bot = updater.bot
 
     handlers = [
+        # admin
+        CommandHandler("subscribers", _subscribers, filters=ADMIN_FILTER),
+        MessageHandler(Filters.reply & ADMIN_FILTER, _adminReply),
+
+        # users
         CommandHandler("start", _start),
-        CommandHandler("debug", _debug, filters=ADMIN),
-
-
         MessageHandler(Filters.text, _text)
     ]
 
@@ -36,8 +38,9 @@ def run():
     updater.idle()
 
 
-def _debug(update: Update, context: CallbackContext):
-    onAliveReceived()
+def _subscribers(update: Update, context: CallbackContext):
+    context.bot.sendMessage(chat_id=update.effective_chat.id,
+                            text=f"{len(subscribedUsers)}:{str(subscribedUsers)}")
 
 
 def _start(update: Update, context: CallbackContext):
@@ -54,6 +57,13 @@ def _start(update: Update, context: CallbackContext):
                             reply_markup=NOTIFY_KEYBOARD)
 
 
+def putDataForReply(update: Update):
+    mesId = update.effective_message.message_id
+    userId = update.effective_chat.id
+    username = update.effective_user.name
+    return f"{userId}|{mesId}|\n{username}:\n\n{update.effective_message.text}"
+
+
 def _text(update: Update, context: CallbackContext):
     if update.effective_message.text == NOTIFY:
         logging.info("subscribed to notify, userid: %d", update.effective_chat.id)
@@ -64,11 +74,29 @@ def _text(update: Update, context: CallbackContext):
         notifyUsers.append(update.effective_chat.id)
     else:
         logging.info("unknown text, userid: %d", update.effective_chat.id)
-        TEXT = "Чел ты...."
+        TEXT = "Сообщение принято :)"
         time.sleep(5)
         context.bot.sendMessage(chat_id=update.effective_chat.id,
                                 text=TEXT,
                                 reply_to_message_id=update.effective_message.message_id)
+        if update.effective_chat.id != ADMIN_USER_ID:
+            context.bot.sendMessage(chat_id=ADMIN_USER_ID,
+                                    text=putDataForReply(update),
+                                    disable_notification=True)
+
+
+def _adminReply(update: Update, context: CallbackContext):
+    try:
+        text_to_reply = update.effective_message.text
+        text = update.effective_message.reply_to_message.text
+        userId = text.split("|")[0]
+        mesId = text.split("|")[1]
+        trySendMessage(chat_id=int(userId),
+                       text=text_to_reply,
+                       silent=1,
+                       reply_to_message_id=mesId)
+    except Exception:
+        pass
 
 
 def onAliveReceived():
@@ -80,13 +108,14 @@ def onAliveReceived():
         notifyUsers.remove(user)
 
 
-def trySendMessage(chat_id, text, reply_markup=None, silent=0):
+def trySendMessage(chat_id, text, reply_markup=None, silent=0, reply_to_message_id=None):
     try:
         logging.info("method: %s, userid: %d", "trySendMessage", chat_id)
         bot.sendMessage(chat_id=chat_id,
                         text=text,
                         reply_markup=reply_markup,
-                        disable_notification=(silent == 1))
+                        disable_notification=(silent == 1),
+                        reply_to_message_id=reply_to_message_id)
     except Unauthorized as e:
         logging.info("unsubscribed user, userid: %d", chat_id)
         removeUser(chat_id)
@@ -135,7 +164,8 @@ NOTIFY_KEYBOARD_BUTTONS = [
 ]
 NOTIFY_KEYBOARD = ReplyKeyboardMarkup(NOTIFY_KEYBOARD_BUTTONS, resize_keyboard=True)
 EMPTY_KEYBOARD = ReplyKeyboardRemove()
-ADMIN = Filters.user(username="RebootSTR")
+ADMIN_USER_ID = 383120920
+ADMIN_FILTER = Filters.user(user_id=ADMIN_USER_ID)
 bot: Bot
 
 if __name__ == '__main__':
