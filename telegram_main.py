@@ -25,6 +25,7 @@ def run():
         # admin
         CommandHandler("subscribers", _subscribers, filters=ADMIN_FILTER),
         MessageHandler(Filters.reply & ADMIN_FILTER, _adminReply),
+        MessageHandler(Filters.text & ADMIN_FILTER, _adminText),
 
         # users
         CommandHandler("start", _start),
@@ -41,6 +42,18 @@ def run():
 def _subscribers(update: Update, context: CallbackContext):
     context.bot.sendMessage(chat_id=update.effective_chat.id,
                             text=f"{len(subscribedUsers)}:{str(subscribedUsers)}")
+
+
+MESSAGE_TO_ALL = "all"
+
+
+def _adminText(update: Update, context: CallbackContext):
+    if update.effective_message.text[:3] == MESSAGE_TO_ALL:
+        text = update.effective_message.text.split("\n", 1)[1]
+        silent = 1
+        if update.effective_message.text[3] != "\n":
+            silent = 0
+        send_status(text, silent=silent)
 
 
 def _start(update: Update, context: CallbackContext):
