@@ -35,6 +35,8 @@ def run():
     for handler in handlers:
         dispatcher.add_handler(handler)
 
+    dispatcher.add_error_handler(ignoreErrorsHAHAHA)
+
     updater.start_polling()
     updater.idle()
 
@@ -45,6 +47,10 @@ def _subscribers(update: Update, context: CallbackContext):
 
 
 MESSAGE_TO_ALL = "all"
+
+
+def ignoreErrorsHAHAHA():
+    pass
 
 
 def _adminText(update: Update, context: CallbackContext):
