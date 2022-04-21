@@ -60,6 +60,8 @@ def _adminText(update: Update, context: CallbackContext):
         if update.effective_message.text[3] != "\n":
             silent = 0
         send_status(text, silent=silent)
+    else:
+        _text(update, context)
 
 
 def _start(update: Update, context: CallbackContext):
