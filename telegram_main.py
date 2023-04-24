@@ -6,9 +6,11 @@ from telegram import Update, KeyboardButton, ReplyKeyboardMarkup, Bot, ReplyKeyb
 from telegram.error import Unauthorized
 from telegram.ext import Updater, CommandHandler, CallbackContext, Dispatcher, MessageHandler, Filters
 
-import properties
+import DataBase
 import psutiNetUpdater
-from properties import DataBase
+from PropertiesManager import PropertiesManager
+from Repository import Repository
+from DataBase import DataBase
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
@@ -144,8 +146,8 @@ def trySendMessage(chat_id, text, reply_markup=None, silent=0, reply_to_message_
         logging.error(e)
 
 
-def fillSubscribers(database: DataBase):
-    for row in database.get_all("ids", "user_id"):
+def fillSubscribers():
+    for row in _repository.getAllUsers():
         subscribedUsers.append(row[0])
 
 
@@ -154,12 +156,11 @@ def trySaveUserId(userId: int):
         return
     logging.info("save user, userid: %d", userId)
     subscribedUsers.append(userId)
-    getDatabase().append("ids", userId)
+    _repository.addUser(userId)
 
 
 def getDatabase():
     base = DataBase("users.db")
-    base.create("ids(user_id INTEGER)")
     return base
 
 
@@ -167,7 +168,7 @@ def removeUser(userId: int):
     logging.info("remove user, userid: %d", userId)
 
     subscribedUsers.remove(userId)
-    getDatabase().remove("ids", "user_id", userId)
+    _repository.removeUser(userId)
 
 
 def send_status(status: str, silent=0):
@@ -189,11 +190,16 @@ ADMIN_USER_ID = 383120920
 ADMIN_FILTER = Filters.user(user_id=ADMIN_USER_ID)
 bot: Bot
 
+_database = DataBase("users.db")
+_repository = Repository(_database)
+_propertyManager = PropertiesManager(_repository)
+
 if __name__ == '__main__':
     subscribedUsers = []
     notifyUsers = []
-    token = properties.get("tg_token")
-    fillSubscribers(getDatabase())
+
+    token = _propertyManager.get("tg_token")
+    fillSubscribers()
 
     psutiNetUpdater.run(send_status, onAliveReceived)
 
