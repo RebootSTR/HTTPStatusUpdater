@@ -1,6 +1,7 @@
 import logging
 import time
 from threading import Thread, Lock
+from dictionary import *
 
 from HTTPServer import HTTPServer
 
@@ -16,9 +17,6 @@ dead_check_period = sender_period / 4
 
 ALLOWED_SKIPS = 2
 SILENT_TIME_MINUTES = 5
-
-STATUS_ALIVE = "Интернет ожил во имя святого Лемжина (спустя {0} секунд)"
-STATUS_DEAD = "Инет упал, опять.."
 
 _is_internet_alive = True
 last_update_time = time.time()

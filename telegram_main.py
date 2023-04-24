@@ -11,6 +11,7 @@ import psutiNetUpdater
 from PropertiesManager import PropertiesManager
 from Repository import Repository
 from DataBase import DataBase
+from dictionary import *
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
@@ -71,9 +72,9 @@ def _start(update: Update, context: CallbackContext):
 
     TEXT: str
     if update.effective_chat.id in subscribedUsers:
-        TEXT = "Вы уже подписаны на уведомления"
+        TEXT = YOU_ALREADY_SUBSCRIBED
     else:
-        TEXT = "Привет, теперь ты будешь получать уведомления о смерти и восстановлении ПгутиНета во 2 общажитии"
+        TEXT = HELLO_MESSAGE
         trySaveUserId(update.effective_chat.id)
     context.bot.sendMessage(chat_id=update.effective_chat.id,
                             text=TEXT,
@@ -88,16 +89,16 @@ def putDataForReply(update: Update):
 
 
 def _text(update: Update, context: CallbackContext):
-    if update.effective_message.text == NOTIFY:
+    if update.effective_message.text == FORCE_NOTIFICATION:
         logging.info("subscribed to notify, userid: %d", update.effective_chat.id)
-        TEXT = 'Вы получите уведомление о ближайшем получении "живого" сигнала ПгутиНета'
+        TEXT = SUBSCRIBED
         context.bot.sendMessage(chat_id=update.effective_chat.id,
                                 text=TEXT,
                                 reply_markup=EMPTY_KEYBOARD)
         notifyUsers.append(update.effective_chat.id)
     else:
         logging.info("unknown text, userid: %d", update.effective_chat.id)
-        TEXT = "Сообщение принято :)"
+        TEXT = MESSAGE_SENT
         time.sleep(5)
         context.bot.sendMessage(chat_id=update.effective_chat.id,
                                 text=TEXT,
@@ -126,7 +127,7 @@ def onAliveReceived():
     for user in notifyUsers:
         logging.info("method: %s, userid: %d", "onAliveReceived", user)
         trySendMessage(chat_id=user,
-                       text="Интернет жив",
+                       text=INTERNET_IS_ALIVE_MESSAGE,
                        reply_markup=NOTIFY_KEYBOARD)
         notifyUsers.remove(user)
 
@@ -159,11 +160,6 @@ def trySaveUserId(userId: int):
     _repository.addUser(userId)
 
 
-def getDatabase():
-    base = DataBase("users.db")
-    return base
-
-
 def removeUser(userId: int):
     logging.info("remove user, userid: %d", userId)
 
@@ -180,9 +176,8 @@ def send_status(status: str, silent=0):
                        silent=silent)
 
 
-NOTIFY = "Принудительное уведомлнеие"
 NOTIFY_KEYBOARD_BUTTONS = [
-    [KeyboardButton(NOTIFY)]
+    [KeyboardButton(FORCE_NOTIFICATION)]
 ]
 NOTIFY_KEYBOARD = ReplyKeyboardMarkup(NOTIFY_KEYBOARD_BUTTONS, resize_keyboard=True)
 EMPTY_KEYBOARD = ReplyKeyboardRemove()
