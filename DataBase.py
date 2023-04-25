@@ -29,7 +29,7 @@ class DataBase:
         cursor.close()
         return data
 
-    def get_all(self, table, column):
+    def get_all(self, table, column="*"):
         cursor = self.conn.cursor()
         data = cursor.execute("SELECT {} FROM {}".format(column, table)).fetchall()
         cursor.close()

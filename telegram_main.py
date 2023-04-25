@@ -2,19 +2,23 @@
 import logging
 from random import Random
 
-from telegram import Update, KeyboardButton, ReplyKeyboardMarkup, Bot, ReplyKeyboardRemove
+from telegram import Update, Bot, Message
 from telegram.error import Unauthorized
-from telegram.ext import Updater, CommandHandler, CallbackContext, Dispatcher, MessageHandler, Filters
+from telegram.ext import Updater, CommandHandler, CallbackContext, Dispatcher, MessageHandler, Filters, \
+    CallbackQueryHandler
 
-import psutiNetUpdater
+import StateManager
+from StatusChecker import StatusChecker
 from PropertiesManager import PropertiesManager
 from Repository import Repository
-from dictionary import *
+from entity.User import User
+from keyboard import *
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
 
 
+# метод для старта бота
 def run():
     global bot
     updater = Updater(token=token)
@@ -41,6 +45,7 @@ def run():
 MESSAGE_TO_ALL = "all"
 
 
+# метод обработки команды start
 def commandStartHandler(update: Update, context: CallbackContext):
     userId = update.effective_chat.id
     logging.info("method: %s, userid: %d", "commandStartHandler", userId)
@@ -51,25 +56,32 @@ def commandStartHandler(update: Update, context: CallbackContext):
     else:
         TEXT = HELLO_MESSAGE
         trySaveUserId(userId)
-    context.bot.sendMessage(chat_id=userId,
-                            text=TEXT,
-                            reply_markup=getKeyboard(isUserAdmin(userId)))
+    trySendMessage(chat_id=userId,
+                   text=TEXT)
 
 
+# метод обработки комманды admin
 def commandAdminHandler(update: Update, context: CallbackContext):
     userId = update.effective_chat.id
     logging.info("method: %s, userid: %d", "commandAdminHandler", userId)
 
-    generateAdminCode(userId, update.effective_user.username)
+    code = generateAdminCode(update.effective_user.username)
+    _repository.setUserState(userId, StateManager.adminCode(code))
 
 
+# метод обработки сообщений
 def messageHandler(update: Update, context: CallbackContext):
+    userId = update.effective_chat.id
+    logging.info("messageHandler, userid: %d", userId)
+
+    trySaveUserId(userId)
     if isUserAdmin(update.effective_user.id):
         adminTextHandler(update, context)
     else:
         userTextHandler(update, context)
 
 
+# метод обработки ответов на сообщения
 def replyHandler(update: Update, context: CallbackContext):
     if isUserAdmin(update.effective_user.id):
         adminReplyHandler(update, context)
@@ -77,42 +89,96 @@ def replyHandler(update: Update, context: CallbackContext):
         userTextHandler(update, context)
 
 
+# метод обработки сообщений администратора
 def adminTextHandler(update: Update, context: CallbackContext):
+    userId = update.effective_chat.id
+    logging.info("unknown text, userid: %d", userId)
     message = update.effective_message.text
-    if message[:3] == MESSAGE_TO_ALL:
-        text = update.effective_message.text.split("\n", 1)[1]
-        silent = 1
-        if update.effective_message.text[3] != "\n":
-            silent = 0
-        send_status(text, silent=silent)
-    elif message == SUBSCRIBERS:
+    userState = _repository.getUserState(userId)
+
+    if StateManager.NORMAL_BIG_SENDING in userState:  # проверка на состояние нормальной рассылки
+        onNormalModeState(userId, message)
+    elif StateManager.SILENT_BIG_SENDING in userState:  # проверка на состояние тихой рассылки
+        onSilentModeState(userId, message)
+    elif message == SUBSCRIBERS:  # кнопка подписчиков
         onSubscribersClicked(update)
-    elif message == NORMAL_MODE:
-        pass  # todo
-    elif message == SILENT_MODE:
-        pass  # todo
+    elif message == NORMAL_MODE_BUTTON:  # кнопка нормальной рассылки
+        onNormalMessageClicked(update)
+    elif message == SILENT_MODE_BUTTON:  # кнопка тихой рассылки
+        onSilentMessageClicked(update)
     else:
         userTextHandler(update, context)
 
 
+# метод обработки сообщений для админа, который хочет отправить обычную рассылку
+def onNormalModeState(userId: int, message: str):
+    if message == CANCEL:
+        onCancelMessageMode(userId)
+    else:
+        send_status(message, silent=0)
+        _repository.setUserState(userId, StateManager.baseState())
+        trySendMessage(chat_id=userId,
+                       text=BIG_SENDING_COMPLETE)
+
+
+# метод обработки сообщений для админа, который хочет отправить тихую рассылку
+def onSilentModeState(userId: int, message: str):
+    if message == CANCEL:
+        onCancelMessageMode(userId)
+    else:
+        send_status(message, silent=1)
+        _repository.setUserState(userId, StateManager.baseState())
+        trySendMessage(chat_id=userId,
+                       text=BIG_SENDING_COMPLETE)
+
+
+# метод обработки нажатия на кнопку отмены
+def onCancelMessageMode(userId: int):
+    _repository.setUserState(userId, StateManager.baseState())
+    trySendMessage(chat_id=userId,
+                   text=CANCELED)
+
+
+# метод обработки нажатия на кнопку обычной рассылки
+def onNormalMessageClicked(update: Update):
+    userId = update.effective_user.id
+    _repository.setUserState(userId, StateManager.normalBigSending())
+    trySendMessage(chat_id=userId,
+                   text=NORMAL_MODE_MESSAGE,
+                   reply_markup=getCancelKeyboard())
+
+
+# метод обработки нажатия на кнопку тихой рассылки
+def onSilentMessageClicked(update: Update):
+    userId = update.effective_user.id
+    _repository.setUserState(userId, StateManager.silentBigSending())
+    trySendMessage(chat_id=userId,
+                   text=SILENT_MODE_MESSAGE,
+                   reply_markup=getCancelKeyboard())
+
+
+# метод обработки нажатия на кнопку статистики подписчиков
 def onSubscribersClicked(update: Update):
     trySendMessage(chat_id=update.effective_chat.id,
                    text=f"{len(subscribedUsers)}:{str(subscribedUsers)}")
 
 
+# метод обработки сообщений обычных пользователей
 def userTextHandler(update: Update, context: CallbackContext):
     userId = update.effective_chat.id
     logging.info("unknown text, userid: %d", userId)
-    adminCode = _repository.getAdminCode(userId)
+    userState = _repository.getUserState(userId)
 
-    if adminCode is not None:  # проверка, есть ли сохраненный админкод у пользователя
+    if StateManager.ADMIN_CODE in userState:  # проверка, есть ли сохраненный админкод у пользователя
+        adminCode = StateManager.getParams(userState)[StateManager.CODE]
         isSuccess = onHasAdminCode(userId, adminCode, update.effective_message.text)
         if not isSuccess:
             userTextHandler(update, context)  # повторная обработка сообщения
     else:
-        onUnhandledMessage(userId, update.effective_message.message_id, update)
+        onUnhandledMessage(userId, update)
 
 
+# метод обработки ответов администратора
 def adminReplyHandler(update: Update, context: CallbackContext):
     try:
         text_to_reply = update.effective_message.text
@@ -129,6 +195,7 @@ def adminReplyHandler(update: Update, context: CallbackContext):
                        text=ERROR)
 
 
+# метод обработки соятояния пользователя, который хочет получить права админа
 def onHasAdminCode(userId: int, adminCode: str, message: str):
     if message == adminCode:  # админкод введен вверно
         setAdmin(userId)
@@ -136,11 +203,19 @@ def onHasAdminCode(userId: int, adminCode: str, message: str):
                        text=YOU_ADMIN)
         return True
     else:  # админкод введен НЕ вверно
-        _repository.setAdminCode(userId, None)  # очистка админкода
+        _repository.setUserState(userId, StateManager.baseState())  # очистка админкода
         return False
 
 
-def onUnhandledMessage(userId: int, messageId: int, update: Update):
+# утилитарный метод для сохранения ID администратора
+def setAdmin(userId: int):
+    global _adminId
+    _adminId = userId
+    _propertyManager.addOrEdit(ADMIN_ID_PROPERTY, str(userId))
+
+
+# метод обработки сообщения, в случае если оно не подходит ни под одно условие
+def onUnhandledMessage(userId: int, update: Update):
     trySendMessage(chat_id=userId,
                    text=MESSAGE_SENT,
                    reply_to_message_id=update.effective_message.message_id)
@@ -150,16 +225,19 @@ def onUnhandledMessage(userId: int, messageId: int, update: Update):
                        silent=True)
 
 
-def generateAdminCode(userId: int, username: str):
+# метод генерации кода администратора
+def generateAdminCode(username: str) -> int:
     code = Random().randint(1000000000, 9999999999)
-    _repository.setAdminCode(userId, str(code))
     logging.error("ADMIN_CODE FOR USER %s: %d", username, code)
+    return code
 
 
+# обработчик ошибок сети (не нужен)
 def errorHandler():
     pass
 
 
+# метод, который помещает в сообщение данные об его отправителе, чтобы администратор мог на него ответить
 def putDataForReply(update: Update):
     mesId = update.effective_message.message_id
     userId = update.effective_chat.id
@@ -167,16 +245,17 @@ def putDataForReply(update: Update):
     return f"{userId}|{mesId}|\n{username}:\n\n{update.effective_message.text}"
 
 
+# метод рассылки состояния интернета (интернет появился)
 def onAliveReceived():
     for user in notifyUsers:
         logging.info("method: %s, userid: %d", "onAliveReceived", user)
         trySendMessage(chat_id=user,
-                       text=INTERNET_IS_ALIVE_MESSAGE,
-                       reply_markup=getKeyboard(isUserAdmin(user)))
+                       text=INTERNET_IS_ALIVE_MESSAGE)
         notifyUsers.remove(user)
 
 
-def trySendMessage(chat_id, text, reply_markup=None, silent=0, reply_to_message_id=None):
+# утилитарный метод отоправки сообщения с обработкой ошибок
+def trySendMessage(chat_id, text, reply_markup=None, silent=0, reply_to_message_id=None) -> Message or None:
     if reply_markup is None:
         reply_markup = getKeyboard(isUserAdmin(chat_id))
 
@@ -186,11 +265,11 @@ def trySendMessage(chat_id, text, reply_markup=None, silent=0, reply_to_message_
 
     try:
         logging.info("method: %s, userid: %d", "trySendMessage", chat_id)
-        bot.sendMessage(chat_id=chat_id,
-                        text=text,
-                        reply_markup=reply_markup,
-                        disable_notification=(silent == 1),
-                        reply_to_message_id=reply_to_message_id)
+        return bot.sendMessage(chat_id=chat_id,
+                               text=text,
+                               reply_markup=reply_markup,
+                               disable_notification=(silent == 1),
+                               reply_to_message_id=reply_to_message_id)
     except Unauthorized as e:
         logging.info("unsubscribed user, userid: %d", chat_id)
         removeUser(chat_id)
@@ -198,19 +277,22 @@ def trySendMessage(chat_id, text, reply_markup=None, silent=0, reply_to_message_
         logging.error(e)
 
 
+# утилитарный метод выгружающий пользователей из бд в оперативную память
 def fillSubscribers():
-    for row in _repository.getAllUsers():
-        subscribedUsers.append(row[0])
+    for user in _repository.getAllUsers():
+        subscribedUsers.append(user.userId)
 
 
+# метод сохранения пользователя в бд (регистрация); если пользователь уже там, то ничего не делает
 def trySaveUserId(userId: int):
     if userId in subscribedUsers:
         return
     logging.info("save user, userid: %d", userId)
     subscribedUsers.append(userId)
-    _repository.addUser(userId)
+    _repository.addUser(User(userId, StateManager.baseState()))
 
 
+# метод удаления пользователя из бд (отписка)
 def removeUser(userId: int):
     logging.info("remove user, userid: %d", userId)
 
@@ -218,40 +300,26 @@ def removeUser(userId: int):
     _repository.removeUser(userId)
 
 
+# утилитарный метод рассылки сообщения всем пользователям
 def send_status(status: str, silent=0):
     for user in subscribedUsers:
         logging.info("method: %s, userid: %d", "send_status", user)
         trySendMessage(chat_id=user,
                        text=status,
-                       reply_markup=getKeyboard(isUserAdmin(user)),
                        silent=silent)
 
 
+# утилитарный метод проверки, является ли пользователь администратором
 def isUserAdmin(userId: int):
     return userId == _adminId
 
 
-def getKeyboard(isAdmin):
-    if isAdmin:
-        buttons = [
-            [KeyboardButton(NORMAL_MODE), KeyboardButton(SILENT_MODE)],
-            [KeyboardButton(SUBSCRIBERS)]
-        ]
-    else:
-        return ReplyKeyboardRemove()
-
-    return ReplyKeyboardMarkup(buttons, resize_keyboard=True)
-
-
-def setAdmin(userId: int):
-    global _adminId
-    _adminId = userId
-    _propertyManager.addOrEdit(ADMIN_ID_PROPERTY, str(userId))
-
+ADMIN_ID_PROPERTY = "admin_id"
+TELEGRAM_TOKEN_PROPERTY = "tg_token"
+DATABASE_NAME = "status_updater_base.sqlite3"
 
 bot: Bot
-ADMIN_ID_PROPERTY = "admin_id"
-_repository = Repository("users.db")
+_repository = Repository(DATABASE_NAME)
 _propertyManager = PropertiesManager(_repository)
 _adminId = None
 
@@ -259,10 +327,12 @@ if __name__ == '__main__':
     subscribedUsers = []
     notifyUsers = []
 
-    token = _propertyManager.getOrInput("tg_token")
-    _adminId = int(_propertyManager.get(ADMIN_ID_PROPERTY))
+    token = _propertyManager.getOrInput(TELEGRAM_TOKEN_PROPERTY)
+    adminIdProperty = _propertyManager.get(ADMIN_ID_PROPERTY)
+    _adminId = None if adminIdProperty is None else int(adminIdProperty)
+
     fillSubscribers()
 
-    psutiNetUpdater.run(send_status, onAliveReceived)
+    StatusChecker().run(send_status, onAliveReceived)
 
     run()

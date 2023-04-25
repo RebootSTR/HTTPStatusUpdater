@@ -1,6 +1,6 @@
 # @rebootstr
 from Repository import Repository
-
+from dictionary import *
 
 class PropertiesManager:
 
@@ -24,6 +24,6 @@ class PropertiesManager:
             self.repository.editProperty(propertyName, value)
 
     def create_new_property(self, propertyName):
-        value = input(f"Enter value for {propertyName} >> ")
+        value = input(ENTER_PROPERTY.format(propertyName))
         self.repository.addProperty(propertyName, value)
         return value

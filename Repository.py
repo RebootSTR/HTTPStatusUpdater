@@ -1,8 +1,19 @@
 # @rebootstr
 from DataBase import DataBase
 
+# tables
+from entity.User import User
+
 USERS = "users"
 PROPERTIES = "props"
+
+# "users" columns
+USER_ID = "user_id"
+STATE = "state"
+
+# "property" columns
+PROPERTY = "property"
+VALUE = "value"
 
 
 class Repository:
@@ -16,31 +27,31 @@ class Repository:
 
     def initDataBase(self):
         db = self._getDatabase()
-        db.create(f"{PROPERTIES}(property TEXT, value TEXT)")
-        db.create(f"{USERS}(user_id INTEGER, adminCode TEXT)")
+        db.create(f"{PROPERTIES}({PROPERTY} TEXT, {VALUE} TEXT)")
+        db.create(f"{USERS}({USER_ID} INTEGER, {STATE} TEXT)")
 
     def getProperty(self, propertyName: str):
-        return self._getDatabase().get_one_where(PROPERTIES, "value", f"property='{propertyName}'")
+        return self._getDatabase().get_one_where(PROPERTIES, VALUE, f"{PROPERTY}='{propertyName}'")
 
     def addProperty(self, propertyName: str, value):
-        self._getDatabase().append(PROPERTIES, f"{propertyName}", value)
+        self._getDatabase().append(PROPERTIES, propertyName, value)
 
     def editProperty(self, propertyName: str, value):
-        self._getDatabase().edit(PROPERTIES, "value", value, f"property='{propertyName}'")
+        self._getDatabase().edit(PROPERTIES, VALUE, value, f"{PROPERTY}='{propertyName}'")
 
-    def addUser(self, userId: int):
-        self._getDatabase().append(USERS, userId, None)
+    def addUser(self, user: User):
+        self._getDatabase().append(USERS, user.userId, user.state)
 
-    def getAllUsers(self):
-        return self._getDatabase().get_all(USERS, "user_id")
+    def getAllUsers(self) -> list[User]:
+        return [User(row[0], row[1]) for row in self._getDatabase().get_all(USERS)]
 
     def removeUser(self, userId: int):
-        self._getDatabase().remove(USERS, "user_id", userId)
+        self._getDatabase().remove(USERS, USER_ID, userId)
 
-    def setAdminCode(self, userId: int, code: str or None):
-        self._getDatabase().edit(USERS, "adminCode", code, f"user_id='{userId}'")
+    def setUserState(self, userId: int, state: str):
+        self._getDatabase().edit(USERS, STATE, state, f"{USER_ID}='{userId}'")
 
-    def getAdminCode(self, userId: int):
-        return self._getDatabase().get_one_where(USERS, "adminCode", f"user_id='{userId}'")
+    def getUserState(self, userId: int):
+        return self._getDatabase().get_one_where(USERS, STATE, f"{USER_ID}='{userId}'")
 
 
