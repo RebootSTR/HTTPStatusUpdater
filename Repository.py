@@ -27,8 +27,8 @@ class Repository:
 
     def initDataBase(self):
         db = self._getDatabase()
-        db.create(f"{PROPERTIES}({PROPERTY} TEXT, {VALUE} TEXT)")
-        db.create(f"{USERS}({USER_ID} INTEGER, {STATE} TEXT)")
+        db.create(f"{PROPERTIES}({PROPERTY} TEXT PRIMARY KEY, {VALUE} TEXT)")
+        db.create(f"{USERS}({USER_ID} INTEGER PRIMARY KEY, {STATE} TEXT)")
 
     def getProperty(self, propertyName: str):
         return self._getDatabase().get_one_where(PROPERTIES, VALUE, f"{PROPERTY}='{propertyName}'")
