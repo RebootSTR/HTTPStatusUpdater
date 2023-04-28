@@ -1,8 +1,8 @@
 # @rebootstr
-from DataBase import DataBase
+from client.DataBase import DataBase
 
 # tables
-from entity.User import User
+from client.entity.User import User
 
 USERS = "users"
 PROPERTIES = "props"

@@ -1,11 +1,11 @@
 import logging
 import time
 from threading import Thread, Lock
-from dictionary import *
+from client.dictionary import *
 
 from HTTPServer import HTTPServer
 
-file_log = logging.FileHandler("log.log")
+file_log = logging.FileHandler("../log.log")
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
 logging.getLogger("").addHandler(file_log)

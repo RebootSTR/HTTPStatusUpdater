@@ -1,7 +1,7 @@
 # @rebootstr
 from telegram import KeyboardButton, ReplyKeyboardRemove, ReplyKeyboardMarkup
 
-from dictionary import *
+from client.dictionary import *
 
 
 def getEmptyKeyboard():

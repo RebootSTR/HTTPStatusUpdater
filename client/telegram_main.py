@@ -4,15 +4,14 @@ from random import Random
 
 from telegram import Update, Bot, Message
 from telegram.error import Unauthorized
-from telegram.ext import Updater, CommandHandler, CallbackContext, Dispatcher, MessageHandler, Filters, \
-    CallbackQueryHandler
+from telegram.ext import Updater, CommandHandler, CallbackContext, Dispatcher, MessageHandler, Filters
 
 import StateManager
-from StatusChecker import StatusChecker
-from PropertiesManager import PropertiesManager
-from Repository import Repository
-from entity.User import User
-from keyboard import *
+from server.StatusChecker import StatusChecker
+from client.PropertiesManager import PropertiesManager
+from client.Repository import Repository
+from client.entity.User import User
+from client.keyboard import *
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
@@ -21,7 +20,7 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 # метод для старта бота
 def run():
     global bot
-    updater = Updater(token=token)
+    updater = Updater(token=_token)
     dispatcher = updater.dispatcher
     dispatcher: Dispatcher
     bot = updater.bot
@@ -51,7 +50,7 @@ def commandStartHandler(update: Update, context: CallbackContext):
     logging.info("method: %s, userid: %d", "commandStartHandler", userId)
 
     TEXT: str
-    if userId in subscribedUsers:
+    if userId in _subscribedUsers:
         TEXT = YOU_ALREADY_SUBSCRIBED
     else:
         TEXT = HELLO_MESSAGE
@@ -160,7 +159,7 @@ def onSilentMessageClicked(update: Update):
 # метод обработки нажатия на кнопку статистики подписчиков
 def onSubscribersClicked(update: Update):
     trySendMessage(chat_id=update.effective_chat.id,
-                   text=f"{len(subscribedUsers)}:{str(subscribedUsers)}")
+                   text=f"{len(_subscribedUsers)}:{str(_subscribedUsers)}")
 
 
 # метод обработки сообщений обычных пользователей
@@ -247,11 +246,11 @@ def putDataForReply(update: Update):
 
 # метод рассылки состояния интернета (интернет появился)
 def onAliveReceived():
-    for user in notifyUsers:
+    for user in _notifyUsers:
         logging.info("method: %s, userid: %d", "onAliveReceived", user)
         trySendMessage(chat_id=user,
                        text=INTERNET_IS_ALIVE_MESSAGE)
-        notifyUsers.remove(user)
+        _notifyUsers.remove(user)
 
 
 # утилитарный метод отоправки сообщения с обработкой ошибок
@@ -280,15 +279,15 @@ def trySendMessage(chat_id, text, reply_markup=None, silent=0, reply_to_message_
 # утилитарный метод выгружающий пользователей из бд в оперативную память
 def fillSubscribers():
     for user in _repository.getAllUsers():
-        subscribedUsers.append(user.userId)
+        _subscribedUsers.append(user.userId)
 
 
 # метод сохранения пользователя в бд (регистрация); если пользователь уже там, то ничего не делает
 def trySaveUserId(userId: int):
-    if userId in subscribedUsers:
+    if userId in _subscribedUsers:
         return
     logging.info("save user, userid: %d", userId)
-    subscribedUsers.append(userId)
+    _subscribedUsers.append(userId)
     _repository.addUser(User(userId, StateManager.baseState()))
 
 
@@ -296,13 +295,13 @@ def trySaveUserId(userId: int):
 def removeUser(userId: int):
     logging.info("remove user, userid: %d", userId)
 
-    subscribedUsers.remove(userId)
+    _subscribedUsers.remove(userId)
     _repository.removeUser(userId)
 
 
 # утилитарный метод рассылки сообщения всем пользователям
 def send_status(status: str, silent=0):
-    for user in subscribedUsers:
+    for user in _subscribedUsers:
         logging.info("method: %s, userid: %d", "send_status", user)
         trySendMessage(chat_id=user,
                        text=status,
@@ -323,11 +322,15 @@ _repository = Repository(DATABASE_NAME)
 _propertyManager = PropertiesManager(_repository)
 _adminId = None
 
-if __name__ == '__main__':
-    subscribedUsers = []
-    notifyUsers = []
+_subscribedUsers = []
+_notifyUsers = []
+_token = ""
 
-    token = _propertyManager.getOrInput(TELEGRAM_TOKEN_PROPERTY)
+
+def main():
+    global _adminId, _token
+
+    _token = _propertyManager.getOrInput(TELEGRAM_TOKEN_PROPERTY)
     adminIdProperty = _propertyManager.get(ADMIN_ID_PROPERTY)
     _adminId = None if adminIdProperty is None else int(adminIdProperty)
 

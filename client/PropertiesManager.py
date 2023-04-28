@@ -1,6 +1,6 @@
 # @rebootstr
 from Repository import Repository
-from dictionary import *
+from client.dictionary import *
 
 class PropertiesManager:
 
