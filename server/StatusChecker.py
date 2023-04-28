@@ -3,7 +3,7 @@ import time
 from threading import Thread, Lock
 from client.dictionary import *
 
-from HTTPServer import HTTPServer
+from server.HTTPServer import HTTPServer
 
 file_log = logging.FileHandler("../log.log")
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',

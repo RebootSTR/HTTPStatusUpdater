@@ -6,8 +6,7 @@ from telegram import Update, Bot, Message
 from telegram.error import Unauthorized
 from telegram.ext import Updater, CommandHandler, CallbackContext, Dispatcher, MessageHandler, Filters
 
-import StateManager
-from server.StatusChecker import StatusChecker
+from client import StateManager
 from client.PropertiesManager import PropertiesManager
 from client.Repository import Repository
 from client.entity.User import User
@@ -336,6 +335,6 @@ def main():
 
     fillSubscribers()
 
-    StatusChecker().run(send_status, onAliveReceived)
+
 
     run()

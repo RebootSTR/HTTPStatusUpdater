@@ -1,7 +1,6 @@
 # @rebootstr
 
 import socket
-import sys
 import logging
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
