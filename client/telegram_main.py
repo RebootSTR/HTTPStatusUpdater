@@ -243,15 +243,6 @@ def putDataForReply(update: Update):
     return f"{userId}|{mesId}|\n{username}:\n\n{update.effective_message.text}"
 
 
-# метод рассылки состояния интернета (интернет появился)
-def onAliveReceived():
-    for user in _notifyUsers:
-        logging.info("method: %s, userid: %d", "onAliveReceived", user)
-        trySendMessage(chat_id=user,
-                       text=INTERNET_IS_ALIVE_MESSAGE)
-        _notifyUsers.remove(user)
-
-
 # утилитарный метод отоправки сообщения с обработкой ошибок
 def trySendMessage(chat_id, text, reply_markup=None, silent=0, reply_to_message_id=None) -> Message or None:
     if reply_markup is None:
@@ -322,7 +313,6 @@ _propertyManager = PropertiesManager(_repository)
 _adminId = None
 
 _subscribedUsers = []
-_notifyUsers = []
 _token = ""
 
 

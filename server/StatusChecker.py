@@ -78,7 +78,7 @@ class StatusChecker:
         else:
             sendStatusFunc(status, silent=1)
 
-    def t_listener(self, onAliveReceived):
+    def t_listener(self):
         server = HTTPServer()
 
         while True:
@@ -91,13 +91,12 @@ class StatusChecker:
                 self.lock.acquire()
                 self.last_update_time = time.time()
                 logging.info("alive received from " + str(address))
-                onAliveReceived()
                 self.lock.release()
             else:
                 logging.info(f"received unknown bytes from {address}\n{no_slash(response)}")
 
-    def run(self, sendStatusFunc, onAliveReceived):
+    def run(self, sendStatusFunc):
         updaterThread = Thread(target=self.t_updater, args=(sendStatusFunc,), daemon=True)
         updaterThread.start()
-        listenerThread = Thread(target=self.t_listener, args=(onAliveReceived,), daemon=True)
+        listenerThread = Thread(target=self.t_listener, daemon=True)
         listenerThread.start()

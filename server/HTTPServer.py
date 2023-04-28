@@ -10,25 +10,15 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 class HTTPServer:
 
     def __init__(self):
-        self.started = False
         self.sock = None
         self.start()
 
     def start(self):
-        if self.started:
-            return
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server_address = ("", 8081)
         self.sock.bind(server_address)
         self.sock.listen(1)
         logging.info("Server started on %s:%d", server_address[0], server_address[1])
-
-    def get(self):
-        connection, client_address = self.sock.accept()
-        data = connection.recv(64)
-        connection.close()
-
-        return data.decode(encoding="utf-8"), client_address
 
     def get_bytes(self):
         connection, client_address = self.sock.accept()
