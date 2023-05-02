@@ -4,6 +4,7 @@ from client.DataBase import DataBase
 # tables
 from client.entity.User import User
 
+# tables
 USERS = "users"
 PROPERTIES = "props"
 
