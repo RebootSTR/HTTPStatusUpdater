@@ -70,7 +70,7 @@ class StatusChecker:
         if self._is_internet_alive:  # already alive - skip
             return
 
-        _is_internet_alive = True
+        self._is_internet_alive = True
         timePassed = time.time() - self.deadTime
         status = STATUS_ALIVE.format(int(timePassed))
         if timePassed > SILENT_TIME_MINUTES * 60:
